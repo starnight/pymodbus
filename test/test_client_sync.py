@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import unittest
-from pymodbus.compat import IS_PYTHON3
+from pymodbus.compat import IS_PYTHON3, PYTHON_VERSION
+import pytest
 
 if IS_PYTHON3:  # Python 3
     from unittest.mock import patch, Mock, MagicMock
@@ -257,6 +258,7 @@ class SynchronousClientTest(unittest.TestCase):
     # Test TLS Client
     # -----------------------------------------------------------------------#
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testSyncTlsClientInstantiation(self):
         # default SSLContext
         client = ModbusTlsClient()
@@ -269,6 +271,7 @@ class SynchronousClientTest(unittest.TestCase):
         self.assertNotEqual(client, None)
         self.assertEqual(client.sslctx, context)
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testBasicSyncTlsClient(self):
         ''' Test the basic methods for the tls sync client'''
 
@@ -289,6 +292,7 @@ class SynchronousClientTest(unittest.TestCase):
 
         self.assertEqual("ModbusTlsClient(localhost:802)", str(client))
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsClientConnect(self):
         ''' Test the tls client connection method'''
         with patch.object(ssl.SSLSocket, 'connect') as mock_method:
@@ -300,6 +304,7 @@ class SynchronousClientTest(unittest.TestCase):
             client = ModbusTlsClient()
             self.assertFalse(client.connect())
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsClientSend(self):
         ''' Test the tls client send method'''
         client = ModbusTlsClient()
@@ -309,6 +314,7 @@ class SynchronousClientTest(unittest.TestCase):
         self.assertEqual(0, client._send(None))
         self.assertEqual(4, client._send('1234'))
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsClientRecv(self):
         ''' Test the tls client receive method'''
         client = ModbusTlsClient()
@@ -326,6 +332,7 @@ class SynchronousClientTest(unittest.TestCase):
         mock_socket.recv.side_effect = iter([b'\x00', b'\x01', b'\x02'])
         self.assertEqual(b'\x00\x01', client._recv(2))
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsClientRpr(self):
         client = ModbusTlsClient()
         rep = "<{} at {} socket={}, ipaddr={}, port={}, sslctx={}, " \
@@ -335,6 +342,7 @@ class SynchronousClientTest(unittest.TestCase):
         )
         self.assertEqual(repr(client), rep)
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsClientRegister(self):
         class CustomeRequest:
             function_code = 79

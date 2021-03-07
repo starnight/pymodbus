@@ -376,7 +376,8 @@ class ModbusTlsServer(ModbusTcpServer):
 
     def __init__(self, context, framer=None, identity=None,
                  address=None, handler=None, allow_reuse_address=False,
-                 sslctx=None, certfile=None, keyfile=None, **kwargs):
+                 sslctx=None, certfile=None, keyfile=None, reqclicert=False,
+                 **kwargs):
         """ Overloaded initializer for the ModbusTcpServer
 
         If the identify structure is not passed in, the ModbusControlBlock
@@ -394,6 +395,7 @@ class ModbusTlsServer(ModbusTcpServer):
                        create)
         :param certfile: The cert file path for TLS (used if sslctx is None)
         :param keyfile: The key file path for TLS (used if sslctx is None)
+        :param reqclicert: Force the sever request client's certificate
         :param ignore_missing_slaves: True to not send errors on a request
                         to a missing slave
         :param broadcast_enable: True to treat unit_id 0 as broadcast address,
@@ -401,7 +403,7 @@ class ModbusTlsServer(ModbusTcpServer):
         """
         self.sslctx = sslctx
         if self.sslctx is None:
-            self.sslctx = ssl.create_default_context()
+            self.sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             self.sslctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
             # According to MODBUS/TCP Security Protocol Specification, it is
             # TLSv2 at least
@@ -409,8 +411,8 @@ class ModbusTlsServer(ModbusTcpServer):
             self.sslctx.options |= ssl.OP_NO_TLSv1
             self.sslctx.options |= ssl.OP_NO_SSLv3
             self.sslctx.options |= ssl.OP_NO_SSLv2
-        self.sslctx.verify_mode = ssl.CERT_OPTIONAL
-        self.sslctx.check_hostname = False
+        if reqclicert:
+            self.sslctx.verify_mode = ssl.CERT_REQUIRED
 
         ModbusTcpServer.__init__(self, context, framer, identity, address,
                                  handler, allow_reuse_address, **kwargs)
@@ -621,7 +623,8 @@ def StartTcpServer(context=None, identity=None, address=None,
 
 
 def StartTlsServer(context=None, identity=None, address=None, sslctx=None,
-                   certfile=None, keyfile=None, custom_functions=[], **kwargs):
+                   certfile=None, keyfile=None, reqclicert=False,
+                   custom_functions=[], **kwargs):
     """ A factory to start and run a tls modbus server
 
     :param context: The ModbusServerContext datastore
@@ -630,6 +633,7 @@ def StartTlsServer(context=None, identity=None, address=None, sslctx=None,
     :param sslctx: The SSLContext to use for TLS (default None and auto create)
     :param certfile: The cert file path for TLS (used if sslctx is None)
     :param keyfile: The key file path for TLS (used if sslctx is None)
+    :param reqclicert: Force the sever request client's certificate
     :param custom_functions: An optional list of custom function classes
         supported by server instance.
     :param ignore_missing_slaves: True to not send errors on a request to a
@@ -637,7 +641,8 @@ def StartTlsServer(context=None, identity=None, address=None, sslctx=None,
     """
     framer = kwargs.pop("framer", ModbusTlsFramer)
     server = ModbusTlsServer(context, framer, identity, address, sslctx=sslctx,
-                             certfile=certfile, keyfile=keyfile, **kwargs)
+                             certfile=certfile, keyfile=keyfile,
+                             reqclicert=reqclicert, **kwargs)
 
     for f in custom_functions:
         server.decoder.register(f)

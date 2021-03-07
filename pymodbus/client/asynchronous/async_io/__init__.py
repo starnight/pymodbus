@@ -460,7 +460,7 @@ class ReconnectingAsyncioModbusTlsClient(ReconnectingAsyncioModbusTcpClient):
         """
         self.sslctx = sslctx
         if self.sslctx is None:
-            self.sslctx = ssl.create_default_context()
+            self.sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             # According to MODBUS/TCP Security Protocol Specification, it is
             # TLSv2 at least
             self.sslctx.options |= ssl.OP_NO_TLSv1_1

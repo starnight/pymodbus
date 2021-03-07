@@ -517,6 +517,7 @@ class ModbusTlsServer(ModbusTcpServer):
                  sslctx=None,
                  certfile=None,
                  keyfile=None,
+                 reqclicert=False,
                  handler=None,
                  allow_reuse_address=False,
                  allow_reuse_port=False,
@@ -537,6 +538,7 @@ class ModbusTlsServer(ModbusTcpServer):
                        create)
         :param certfile: The cert file path for TLS (used if sslctx is None)
         :param keyfile: The key file path for TLS (used if sslctx is None)
+        :param reqclicert: Force the sever request client's certificate
         :param handler: A handler for each client session; default is
                         ModbusConnectedRequestHandler. The handler class
                         receives connection create/teardown events
@@ -577,7 +579,7 @@ class ModbusTlsServer(ModbusTcpServer):
 
         self.sslctx = sslctx
         if self.sslctx is None:
-            self.sslctx = ssl.create_default_context()
+            self.sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             self.sslctx.load_cert_chain(certfile=certfile, keyfile=keyfile)
             # According to MODBUS/TCP Security Protocol Specification, it is
             # TLSv2 at least
@@ -585,8 +587,8 @@ class ModbusTlsServer(ModbusTcpServer):
             self.sslctx.options |= ssl.OP_NO_TLSv1
             self.sslctx.options |= ssl.OP_NO_SSLv3
             self.sslctx.options |= ssl.OP_NO_SSLv2
-        self.sslctx.verify_mode = ssl.CERT_OPTIONAL
-        self.sslctx.check_hostname = False
+        if reqclicert:
+            self.sslctx.verify_mode = ssl.CERT_REQUIRED
         # asyncio future that will be done once server has started
         self.serving = self.loop.create_future()
         # constructors cannot be declared async, so we have to
@@ -838,7 +840,7 @@ async def StartTcpServer(context=None, identity=None, address=None,
 
 async def StartTlsServer(context=None, identity=None, address=None,
                          sslctx=None,
-                         certfile=None, keyfile=None,
+                         certfile=None, keyfile=None, reqclicert=False,
                          allow_reuse_address=False,
                          allow_reuse_port=False,
                          custom_functions=[],
@@ -851,6 +853,7 @@ async def StartTlsServer(context=None, identity=None, address=None,
     :param sslctx: The SSLContext to use for TLS (default None and auto create)
     :param certfile: The cert file path for TLS (used if sslctx is None)
     :param keyfile: The key file path for TLS (used if sslctx is None)
+    :param reqclicert: Force the sever request client's certificate
     :param allow_reuse_address: Whether the server will allow the reuse of an
                                 address.
     :param allow_reuse_port: Whether the server will allow the reuse of a port.
@@ -865,7 +868,7 @@ async def StartTlsServer(context=None, identity=None, address=None,
     """
     framer = kwargs.pop("framer", ModbusTlsFramer)
     server = ModbusTlsServer(context, framer, identity, address, sslctx,
-                             certfile, keyfile,
+                             certfile, keyfile, reqclicert=reqclicert,
                              allow_reuse_address=allow_reuse_address,
                              allow_reuse_port=allow_reuse_port, **kwargs)
 

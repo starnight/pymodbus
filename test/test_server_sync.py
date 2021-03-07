@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from pymodbus.compat import IS_PYTHON3
+from pymodbus.compat import IS_PYTHON3, PYTHON_VERSION
+import pytest
 import unittest
 if IS_PYTHON3: # Python 3
     from unittest.mock import patch, Mock
@@ -278,22 +279,26 @@ class SynchronousServerTest(unittest.TestCase):
     #-----------------------------------------------------------------------#
     # Test TLS Server
     #-----------------------------------------------------------------------#
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsServerInit(self):
         ''' test that the synchronous TLS server intial correctly '''
         with patch.object(socket.socket, 'bind') as mock_socket:
             with patch.object(ssl.SSLContext, 'load_cert_chain') as mock_method:
                 identity = ModbusDeviceIdentification(info={0x00: 'VendorName'})
-                server = ModbusTlsServer(context=None, identity=identity)
+                server = ModbusTlsServer(context=None, identity=identity,
+                                         reqclicert=True)
                 self.assertIsNotNone(server.sslctx)
+                self.assertEqual(server.sslctx.verify_mode, ssl.CERT_REQUIRED)
                 self.assertEqual(type(server.socket), ssl.SSLSocket)
                 server.server_close()
-                sslctx = ssl.create_default_context()
+                sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
                 server = ModbusTlsServer(context=None, identity=identity,
                                          sslctx=sslctx)
                 self.assertEqual(server.sslctx, sslctx)
                 self.assertEqual(type(server.socket), ssl.SSLSocket)
                 server.server_close()
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsServerClose(self):
         ''' test that the synchronous TLS server closes correctly '''
         with patch.object(socket.socket, 'bind') as mock_socket:
@@ -305,6 +310,7 @@ class SynchronousServerTest(unittest.TestCase):
                 self.assertEqual(server.control.Identity.VendorName, 'VendorName')
                 self.assertFalse(server.threads[0].running)
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testTlsServerProcess(self):
         ''' test that the synchronous TLS server processes requests '''
         with patch('pymodbus.compat.socketserver.ThreadingTCPServer') as mock_server:
@@ -386,6 +392,7 @@ class SynchronousServerTest(unittest.TestCase):
             with patch.object(socketserver.TCPServer, 'server_bind') as mock_binder:
                 StartTcpServer()
 
+    @pytest.mark.skipif(PYTHON_VERSION < (3, 6), reason="requires python3.6 or above")
     def testStartTlsServer(self):
         ''' Test the tls server starting factory '''
         with patch.object(ModbusTlsServer, 'serve_forever') as mock_server:
